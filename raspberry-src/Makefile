@@ -37,6 +37,11 @@ ifeq ($(wildcard /boot/firmware/cmdline.txt),)
 else
 	CMDLINE=/boot/firmware/cmdline.txt
 endif
+ifeq ($(wildcard /boot/firmware/overlays),)
+	OVERLAYS_DIR=/boot/overlays
+else
+	OVERLAYS_DIR=/boot/firmware/overlays
+endif
 
 
 all: sharp-drm.dtbo
@@ -55,7 +60,7 @@ install: install_modules install_aux
 # Separate rule to be called from DKMS
 install_aux: sharp-drm.dtbo
 	# Install device tree overlay
-	install -D -m 0644 $(BUILD_DIR)/sharp-drm.dtbo /boot/overlays/
+	install -D -m 0644 $(BUILD_DIR)/sharp-drm.dtbo $(OVERLAYS_DIR)/
 	# Add configuration line if it wasn't already there
 	@grep -qxF '$(BOOT_CONFIG_LINE)' $(CONFIG) \
 		|| printf '[all]\ndtparam=spi=on\n$(BOOT_CONFIG_LINE)\n' >> $(CONFIG)
@@ -74,7 +79,7 @@ uninstall:
 	# Remove configuration line and create a backup file
 	@sed -i.save '/$(BOOT_CONFIG_LINE)/d' $(CONFIG)
 	# Remove device tree overlay
-	@rm -f /boot/overlays/sharp-drm.dtbo
+	@rm -f $(OVERLAYS_DIR)/sharp-drm.dtbo
 
 clean:
 	$(MAKE) -C '$(LINUX_DIR)' M='$(shell pwd)' clean

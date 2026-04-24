@@ -33,7 +33,9 @@
 #include <drm/drm_simple_kms_helper.h>
 
 
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 6, 0)
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 11, 0)
+#include <drm/drm_fbdev_dma.h>
+#else
 #include <drm/drm_fbdev_generic.h>
 #endif
 
@@ -114,6 +116,39 @@ static inline struct sharp_memory_panel *drm_to_panel(struct drm_device *drm)
 {
 	return container_of(drm, struct sharp_memory_panel, drm);
 }
+
+static void sharp_memory_xrgb8888_to_gray8(struct iosys_map *dst,
+					   const struct iosys_map *src,
+					   const struct drm_framebuffer *fb,
+					   const struct drm_rect *clip)
+{
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 8, 0)
+	struct drm_format_conv_state state;
+
+	drm_format_conv_state_init(&state);
+	drm_fb_xrgb8888_to_gray8(dst, NULL, src, fb, clip, &state);
+	drm_format_conv_state_release(&state);
+#else
+	drm_fb_xrgb8888_to_gray8(dst, NULL, src, fb, clip);
+#endif
+}
+
+static void sharp_memory_xrgb8888_to_rgb888(struct iosys_map *dst,
+					    const struct iosys_map *src,
+					    const struct drm_framebuffer *fb,
+					    const struct drm_rect *clip)
+{
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 8, 0)
+	struct drm_format_conv_state state;
+
+	drm_format_conv_state_init(&state);
+	drm_fb_xrgb8888_to_rgb888(dst, NULL, src, fb, clip, &state);
+	drm_format_conv_state_release(&state);
+#else
+	drm_fb_xrgb8888_to_rgb888(dst, NULL, src, fb, clip);
+#endif
+}
+
 static bool backlit_on = false;
 
 static void vcom_timer_callback(struct timer_list *t)
@@ -724,7 +759,7 @@ static int sharp_memory_clip_mono_tagged(struct sharp_memory_panel *panel, size_
 	iosys_map_set_vaddr(&dst, buf);
 	iosys_map_set_vaddr(&vmap, dma_obj->vaddr);
 	// DMA `clip` into `buf` and convert to 8-bit grayscale
-	drm_fb_xrgb8888_to_gray8(&dst, NULL, &vmap, fb, clip);
+	sharp_memory_xrgb8888_to_gray8(&dst, &vmap, fb, clip);
 
 	// End DMA area
 	drm_gem_fb_end_cpu_access(fb, DMA_FROM_DEVICE);
@@ -773,7 +808,7 @@ static int sharp_memory_clip_color_tagged(struct sharp_memory_panel *panel, size
 	iosys_map_set_vaddr(&dst, buf);
 	iosys_map_set_vaddr(&vmap, dma_obj->vaddr);
 	// DMA `clip` into `buf` and convert to 8-bit grayscale
-	drm_fb_xrgb8888_to_rgb888(&dst, NULL, &vmap, fb, clip);
+	sharp_memory_xrgb8888_to_rgb888(&dst, &vmap, fb, clip);
 
 	// End DMA area
 	drm_gem_fb_end_cpu_access(fb, DMA_FROM_DEVICE);
@@ -1057,6 +1092,8 @@ int drm_probe(struct spi_device *spi)
 	panel->gpio_backlit = devm_gpiod_get(dev, "backlit", GPIOD_OUT_LOW);
 	if (IS_ERR(panel->gpio_vcom))
 		return dev_err_probe(dev, PTR_ERR(panel->gpio_vcom), "Failed to get GPIO 'vcom'\n");
+	if (IS_ERR(panel->gpio_backlit))
+		return dev_err_probe(dev, PTR_ERR(panel->gpio_backlit), "Failed to get GPIO 'backlit'\n");
 
 	// Initalize DRM mode
 	drm = &panel->drm;
@@ -1119,7 +1156,11 @@ int drm_probe(struct spi_device *spi)
 
 	// fbdev setup
 	spi_set_drvdata(spi, drm);
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 11, 0)
+	drm_fbdev_dma_setup(drm, 0);
+#else
 	drm_fbdev_generic_setup(drm, 0);
+#endif
 
 	printk(KERN_INFO "sharp_memory: successful probe\n");
 

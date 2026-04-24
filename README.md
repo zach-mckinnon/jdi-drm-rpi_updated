@@ -18,7 +18,8 @@ support debian 11 32-bit and debian 12 64-bit with raspberry pi, and debian 12 6
   sudo vi /boot/config.txt   
   # /boot/firmware/config.txt for debian 12
   sudo vi /etc/modules 
-  sudo rm -f /boot/overlays/jdi-drm.dtbo 
+  sudo rm -f /boot/overlays/sharp-drm.dtbo
+  sudo rm -f /boot/firmware/overlays/sharp-drm.dtbo
   ```
 * remove old sharp-drm in apt if exist, and other packages depend on it.
 * unzip file to /var/tmp/jdi-drm-rpi
@@ -41,7 +42,7 @@ echo "sharp-drm" | sudo tee -a /etc/modules
 
 * raspberry pi
   ```shell
-  sudo apt-get install raspberrypi-kernel-headers
+  sudo apt-get install raspberrypi-kernel-headers device-tree-compiler
   make
   sudo make install
   ```
@@ -79,11 +80,11 @@ export PROMPT="%c$ "
 export PATH=$PATH:~/sbin
 export SDL_VIDEODRIVER="fbcon"
 export SDL_FBDEV="/dev/fb1"
-alias d0="echo 0 | sudo tee /sys/module/jdi_drm/parameters/dither"
-alias d3="echo 3 | sudo tee /sys/module/jdi_drm/parameters/dither"
-alias d4="echo 4 | sudo tee /sys/module/jdi_drm/parameters/dither"
-alias b="echo 1 | sudo tee /sys/module/jdi_drm/parameters/backlit"
-alias bn="echo 0 | sudo tee /sys/module/jdi_drm/parameters/backlit"
+alias d0="echo 0 | sudo tee /sys/module/sharp_drm/parameters/dither"
+alias d3="echo 3 | sudo tee /sys/module/sharp_drm/parameters/dither"
+alias d4="echo 4 | sudo tee /sys/module/sharp_drm/parameters/dither"
+alias b="echo 1 | sudo tee /sys/module/sharp_drm/parameters/backlit"
+alias bn="echo 0 | sudo tee /sys/module/sharp_drm/parameters/backlit"
 alias key='echo "keys" | sudo tee /sys/module/beepy_kbd/parameters/touch_as > /dev/null'
 alias mouse='echo "mouse" | sudo tee /sys/module/beepy_kbd/parameters/touch_as > /dev/null'
 ```
