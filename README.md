@@ -33,6 +33,7 @@ This repo now includes a setup script that installs:
 * the `beepy-kbd` keyboard driver from source
 * the console keymap
 * the side-button backlight service
+* a battery helper as `colorberry-battery`
 
 ### Prerequisites
 
@@ -66,6 +67,7 @@ The script will:
 * install `beepy-kbd.ko` and `beepy-kbd.dtbo`
 * install `back.py` as `/usr/local/bin/colorberry-backlight`
 * install and enable `colorberry-backlight.service`
+* install `battery.py` as `/usr/local/bin/colorberry-battery`
 
 If you prefer to reboot manually, omit `--reboot`.
 
@@ -91,6 +93,31 @@ cat /sys/module/sharp_drm/parameters/backlit
 ```shell
 echo 1 | sudo tee /sys/module/sharp_drm/parameters/backlit
 echo 255 | sudo tee /sys/firmware/beepy/keyboard_backlight
+```
+
+### Battery Helper
+
+Beepy exposes these battery sysfs entries under `/sys/firmware/beepy`:
+
+* `battery_percent`
+* `battery_volts`
+* `battery_raw`
+
+The setup script installs a helper as `/usr/local/bin/colorberry-battery`.
+
+Examples:
+
+```shell
+colorberry-battery
+colorberry-battery --percent
+colorberry-battery --volts
+colorberry-battery --json
+```
+
+For `tmux`, you can use:
+
+```tmux
+set -g status-right "#{ip} | #(/usr/local/bin/colorberry-battery --percent)%% | %H:%M"
 ```
 
 The side button is handled by `colorberry-backlight.service`, not by cron.

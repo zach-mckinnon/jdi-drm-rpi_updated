@@ -8,6 +8,7 @@ KEYBOARD_SRC_DIR="${KEYBOARD_SRC_DIR:-/usr/local/src/beepberry-keyboard-driver}"
 BACKLIGHT_BIN="/usr/local/bin/colorberry-backlight"
 BACKLIGHT_SERVICE_SRC="${SCRIPT_DIR}/colorberry-backlight.service"
 BACKLIGHT_SERVICE="/etc/systemd/system/colorberry-backlight.service"
+BATTERY_BIN="/usr/local/bin/colorberry-battery"
 KEYMAP_DEST="/usr/local/share/kbd/keymaps/beepy-kbd.map"
 MODULES_FILE="/etc/modules"
 REBOOT_AFTER=0
@@ -168,9 +169,14 @@ fi
 echo "Installing side-button backlight service..."
 install -D -m 0755 "${SCRIPT_DIR}/back.py" "$BACKLIGHT_BIN"
 install -D -m 0644 "$BACKLIGHT_SERVICE_SRC" "$BACKLIGHT_SERVICE"
+install -D -m 0755 "${SCRIPT_DIR}/battery.py" "$BATTERY_BIN"
 
 if [[ ! -x "$BACKLIGHT_BIN" ]]; then
 	echo "Backlight helper was not installed to ${BACKLIGHT_BIN}" >&2
+	exit 1
+fi
+if [[ ! -x "$BATTERY_BIN" ]]; then
+	echo "Battery helper was not installed to ${BATTERY_BIN}" >&2
 	exit 1
 fi
 
@@ -189,6 +195,7 @@ echo "Install complete."
 echo "Tested target: Raspberry Pi OS Bookworm 32-bit on Pi Zero 2 W / Beepy / ColorBerry."
 echo "A reboot is required before the keyboard overlay is active."
 echo "The side-button backlight listener is installed as colorberry-backlight.service."
+echo "Battery helper installed as ${BATTERY_BIN}."
 
 if [[ -e /dev/i2c-1 ]]; then
 	if i2cdetect -y 1 | grep -q '\<1f\>'; then
