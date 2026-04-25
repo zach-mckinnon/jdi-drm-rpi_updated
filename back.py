@@ -42,8 +42,14 @@ def set_backlight(enabled):
     global backlit_on
 
     backlit_on = enabled
-    write_value(DISPLAY_BACKLIGHT_PATH, "1" if enabled else "0")
-    write_value(KEYBOARD_BACKLIGHT_PATH, "255" if enabled else "0")
+    display_ok = write_value(DISPLAY_BACKLIGHT_PATH, "1" if enabled else "0")
+    keyboard_ok = write_value(KEYBOARD_BACKLIGHT_PATH, "255" if enabled else "0")
+    print(
+        f"backlight={'on' if enabled else 'off'} "
+        f"display={'ok' if display_ok else 'missing'} "
+        f"keyboard={'ok' if keyboard_ok else 'missing'}",
+        flush=True,
+    )
 
 
 def button_pressed():
@@ -60,6 +66,11 @@ if __name__ == "__main__":
     GPIO.setmode(GPIO.BCM)
     GPIO.setup(BUTTON_PIN, GPIO.IN, pull_up_down=GPIO.PUD_UP)
     backlit_on = read_value(DISPLAY_BACKLIGHT_PATH, "0") == "1"
+    print(
+        f"Listening on GPIO {BUTTON_PIN}, current display backlight="
+        f"{'on' if backlit_on else 'off'}",
+        flush=True,
+    )
 
     signal.signal(signal.SIGINT, signal_handler)
     signal.signal(signal.SIGTERM, signal_handler)
