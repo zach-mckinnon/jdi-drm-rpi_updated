@@ -6,56 +6,117 @@ This repo is for jdi screen driver and configure file of ColorBerry, which is av
 
 support debian 11 32-bit and debian 12 64-bit with raspberry pi, and debian 12 64-bit with orange pi zero 2w
 
+# Tested Raspberry Pi OS Versions
+
+The current source tree and the Bookworm setup script in this repo have been tested on:
+
+* Raspberry Pi OS Bookworm 32-bit (`armhf`)
+* Raspberry Pi kernel `6.12.75+rpt-rpi-v7`
+* Raspberry Pi Zero 2 W mounted in Beepy / ColorBerry hardware
+
+This is the supported path for setting up the screen, keyboard, and side-button backlight together.
+
+The older zip archives in this repo are still older snapshots for:
+
+* Raspberry Pi Debian 11 32-bit
+* Raspberry Pi Debian 12 64-bit
+
+but the integrated setup flow below is for Raspberry Pi OS Bookworm 32-bit.
+
 # Raspberry PI
 
-## Install
+## One-Step Bookworm Setup
 
-### binary
+This repo now includes a setup script that installs:
 
-* remove old jdi-drm
+* the local `sharp-drm` driver from `raspberry-src`
+* the `beepy-kbd` keyboard driver from source
+* the console keymap
+* the side-button backlight service
 
-  ```shell
-  sudo vi /boot/config.txt   
-  # /boot/firmware/config.txt for debian 12
-  sudo vi /etc/modules 
-  sudo rm -f /boot/overlays/sharp-drm.dtbo
-  sudo rm -f /boot/firmware/overlays/sharp-drm.dtbo
-  ```
-* remove old sharp-drm in apt if exist, and other packages depend on it.
-* unzip file to /var/tmp/jdi-drm-rpi
-* cd to /var/tmp/jdi-drm-rpi
-* run `sudo make install`
-* reboot
+### Prerequisites
 
-### from source
+Before running the script:
 
-* orangepi
+* use Raspberry Pi OS Bookworm 32-bit
+* boot the Pi into the kernel you actually want to run
+* make sure matching headers exist for that running kernel
+* if the Beepy / ColorBerry RP2040 firmware is old, flash the latest `i2c_puppet.uf2` first
+
+Firmware flash reference:
+
+* [Beepy Getting Started](https://beepy.sqfmi.com/docs/getting-started)
+* [Beepy Keyboard Firmware](https://beepy.sqfmi.com/docs/firmware/keyboard)
+
+### Run It
+
+From the repo root on the Pi:
 
 ```shell
-sudo dpkg -i /opt/linux-headers-next-sun50iw9_1.0.0_arm64.deb
-sudo orangepi-add-overlay sharp-drm.dts
-make all
-sudo cp sharp-drm.ko /lib/modules/6.1.31-sun50iw9/
-sudo depmod -a
-echo "sharp-drm" | sudo tee -a /etc/modules
+cd ~/jdi-drm-rpi_updated
+sudo bash ./setup-colorberry-rpi-bookworm.sh --reboot
 ```
 
-* raspberry pi
-  ```shell
-  sudo apt-get install raspberrypi-kernel-headers device-tree-compiler
-  make
-  sudo make install
-  ```
+The script will:
 
+* enable I2C
+* remove conflicting apt packages such as PPA `sharp-drm` / `beepy-kbd`
+* build and install this repo's `sharp-drm`
+* clone and build `https://github.com/ardangelo/beepberry-keyboard-driver.git`
+* install `beepy-kbd.ko` and `beepy-kbd.dtbo`
+* install `back.py` as `/usr/local/bin/colorberry-backlight`
+* install and enable `colorberry-backlight.service`
 
+If you prefer to reboot manually, omit `--reboot`.
 
-## Control backlight by side button
+### Notes
 
-* put back.py in place like /home/username/sbin/back.py
-* `chmod +x back.py`
-* `sudo crontab -e`
-* append `@reboot   sleep 5;/path/to/back.py`
-* if it doesn't work in debian 12 64-bit, reinstall `python3-rpi.gpio`
+* This flow intentionally does **not** use the PPA `sharp-drm` package, because that package failed to build cleanly on the tested `6.12.75+rpt-rpi-v7` kernel.
+* The script installs `beepy-fw` on a best-effort basis if the Beepy PPA is reachable, but it does not force a firmware flash.
+* If `/dev/i2c-1` is still missing after the script finishes, reboot once and rerun the verification commands below.
+
+### Verify After Reboot
+
+```shell
+lsmod | grep sharp
+lsmod | grep beepy
+dmesg | grep -Ei "sharp|beepy"
+ls /sys/firmware/beepy
+ls /sys/firmware/beepy/keyboard_backlight
+cat /sys/module/sharp_drm/parameters/backlit
+```
+
+### Backlight Checks
+
+```shell
+echo 1 | sudo tee /sys/module/sharp_drm/parameters/backlit
+echo 255 | sudo tee /sys/firmware/beepy/keyboard_backlight
+```
+
+The side button is handled by `colorberry-backlight.service`, not by cron.
+
+You should not normally run `back.py` by hand in a terminal. It is a long-running listener process and is meant to run under `systemd` in the background.
+
+### Backlight Service
+
+The installer enables the service automatically. Useful commands:
+
+```shell
+sudo systemctl status colorberry-backlight.service
+sudo systemctl restart colorberry-backlight.service
+sudo journalctl -u colorberry-backlight.service -b
+```
+
+### Manual Driver Build Only
+
+If you only want to rebuild the display driver:
+
+```shell
+cd ~/jdi-drm-rpi_updated/raspberry-src
+make clean
+make
+sudo make install
+```
 
 ### Set dithering level
 

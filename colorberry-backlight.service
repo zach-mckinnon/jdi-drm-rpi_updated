@@ -1,0 +1,17 @@
+[Unit]
+Description=ColorBerry side-button backlight toggle
+After=systemd-modules-load.service
+Wants=systemd-modules-load.service
+
+[Service]
+Type=simple
+ExecStartPre=/bin/sleep 8
+ExecStart=/usr/bin/python3 /usr/local/bin/colorberry-backlight
+Restart=always
+RestartSec=2
+StandardOutput=null
+StandardError=journal
+User=root
+
+[Install]
+WantedBy=multi-user.target
