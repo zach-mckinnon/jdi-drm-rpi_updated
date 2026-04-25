@@ -12,6 +12,14 @@
 #include "params_iface.h"
 #include "ioctl_iface.h"
 
+void sharp_memory_set_invert(int setting);
+void *sharp_memory_add_overlay(int x, int y, int width, int height,
+	unsigned char const *pixels);
+void sharp_memory_remove_overlay(void *entry);
+void *sharp_memory_show_overlay(void *storage);
+void sharp_memory_hide_overlay(void *display);
+void sharp_memory_clear_overlays(void);
+
 static int sharp_memory_probe(struct spi_device *spi)
 {
 	int ret;
@@ -70,26 +78,26 @@ void sharp_memory_set_invert(int setting)
 }
 EXPORT_SYMBOL_GPL(sharp_memory_set_invert);
 
-void* sharp_memory_add_overlay(int x, int y, int width, int height,
-	unsigned char const* pixels)
+void *sharp_memory_add_overlay(int x, int y, int width, int height,
+	unsigned char const *pixels)
 {
 	return drm_add_overlay(x, y, width, height, pixels);
 }
 EXPORT_SYMBOL_GPL(sharp_memory_add_overlay);
 
-void sharp_memory_remove_overlay(void* entry)
+void sharp_memory_remove_overlay(void *entry)
 {
 	drm_remove_overlay(entry);
 }
 EXPORT_SYMBOL_GPL(sharp_memory_remove_overlay);
 
-void* sharp_memory_show_overlay(void* storage)
+void *sharp_memory_show_overlay(void *storage)
 {
 	return drm_show_overlay(storage);
 }
 EXPORT_SYMBOL_GPL(sharp_memory_show_overlay);
 
-void sharp_memory_hide_overlay(void* display)
+void sharp_memory_hide_overlay(void *display)
 {
 	drm_hide_overlay(display);
 }

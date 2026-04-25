@@ -153,12 +153,8 @@ static bool backlit_on = false;
 
 static void vcom_timer_callback(struct timer_list *t)
 {
-	static u8 vcom_setting = 0;
-
 	struct sharp_memory_panel *panel = from_timer(panel, t, vcom_timer);
 
-	// Toggle the GPIO pin
-	//vcom_setting = (vcom_setting) ? 0 : 1;
 	gpiod_set_value(panel->gpio_vcom, 1);
 	udelay(2);
 	gpiod_set_value(panel->gpio_vcom, 0);
@@ -290,7 +286,7 @@ static void draw_overlays(struct sharp_memory_panel *panel, u8 *buf, int width,
 	}
 }
 
-static size_t sharp_memory_gray8_to_mono_tagged(u8 *buf, int width, int height, int y0)
+static __maybe_unused size_t sharp_memory_gray8_to_mono_tagged(u8 *buf, int width, int height, int y0)
 {
 	int line, b8, b1;
 	unsigned char d;
@@ -336,7 +332,7 @@ static size_t sharp_memory_gray8_to_mono_tagged(u8 *buf, int width, int height, 
 	return height * tagged_line_len;
 }
 
-static size_t sharp_memory_gray8_to_mono_tagged_dither(u8 *buf, int width, int height, int y0)
+static __maybe_unused size_t sharp_memory_gray8_to_mono_tagged_dither(u8 *buf, int width, int height, int y0)
 {
 	int line, b8, b1, msize, *dM;
 	unsigned char d;
@@ -738,8 +734,8 @@ static size_t sharp_memory_rgb_to_3bit_tagged_dither(u8 *buf, int width, int hei
 // Use DMA to get grayscale representation, then convert to mono
 // with line number and trailer tags suitable for multi-line write
 // Output is stored in `buf`, which must be at least W*H bytes
-static int sharp_memory_clip_mono_tagged(struct sharp_memory_panel *panel, size_t *result_len,
-									   u8 *buf, struct drm_framebuffer *fb, struct drm_rect const *clip)
+static __maybe_unused int sharp_memory_clip_mono_tagged(struct sharp_memory_panel *panel, size_t *result_len,
+										u8 *buf, struct drm_framebuffer *fb, struct drm_rect const *clip)
 {
 	int rc;
 	struct drm_gem_dma_object *dma_obj;
@@ -1036,7 +1032,7 @@ static const struct drm_ioctl_desc sharp_memory_ioctls[] = {
 	DRM_IOCTL_DEF_DRV_OV_SHOW,
 	DRM_IOCTL_DEF_DRV_OV_HIDE,
 	DRM_IOCTL_DEF_DRV_OV_CLEAR};
-static unsigned int GPIO_irqNumber;
+
 static const struct drm_driver sharp_memory_driver = {
 	.driver_features = DRIVER_GEM | DRIVER_MODESET | DRIVER_ATOMIC,
 	.fops = &sharp_memory_fops,
