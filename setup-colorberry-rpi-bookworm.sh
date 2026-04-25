@@ -9,6 +9,7 @@ BACKLIGHT_BIN="/usr/local/bin/colorberry-backlight"
 BACKLIGHT_SERVICE_SRC="${SCRIPT_DIR}/colorberry-backlight.service"
 BACKLIGHT_SERVICE="/etc/systemd/system/colorberry-backlight.service"
 BATTERY_BIN="/usr/local/bin/colorberry-battery"
+TMUX_CONF_SRC="${SCRIPT_DIR}/colorberry.tmux.conf"
 KEYMAP_DEST="/usr/local/share/kbd/keymaps/beepy-kbd.map"
 MODULES_FILE="/etc/modules"
 REBOOT_AFTER=0
@@ -88,6 +89,11 @@ replace_or_append_kv() {
 dedupe_modules() {
 	awk '!seen[$0]++' "$MODULES_FILE" > "${MODULES_FILE}.tmp"
 	mv "${MODULES_FILE}.tmp" "$MODULES_FILE"
+}
+
+target_user_home() {
+	local user_name="$1"
+	getent passwd "$user_name" | cut -d: -f6
 }
 
 echo "Installing build and runtime dependencies..."
@@ -191,12 +197,32 @@ if ! systemctl is-active --quiet colorberry-backlight.service; then
 	exit 1
 fi
 
+if [[ -n "${SUDO_USER:-}" && "${SUDO_USER}" != "root" ]]; then
+	TARGET_USER_HOME="$(target_user_home "${SUDO_USER}")"
+	TARGET_USER_GROUP="$(id -gn "${SUDO_USER}")"
+	if [[ -n "${TARGET_USER_HOME}" && -d "${TARGET_USER_HOME}" ]]; then
+		echo "Installing tmux config for ${SUDO_USER}..."
+		if [[ -f "${TARGET_USER_HOME}/.tmux.conf" ]]; then
+			install -m 0644 "$TMUX_CONF_SRC" "${TARGET_USER_HOME}/.tmux.colorberry.conf"
+			chown "${SUDO_USER}:${TARGET_USER_GROUP}" "${TARGET_USER_HOME}/.tmux.colorberry.conf"
+			if ! grep -qxF 'source-file ~/.tmux.colorberry.conf' "${TARGET_USER_HOME}/.tmux.conf" 2>/dev/null; then
+				printf '\nsource-file ~/.tmux.colorberry.conf\n' >> "${TARGET_USER_HOME}/.tmux.conf"
+			fi
+			chown "${SUDO_USER}:${TARGET_USER_GROUP}" "${TARGET_USER_HOME}/.tmux.conf"
+		else
+			install -m 0644 "$TMUX_CONF_SRC" "${TARGET_USER_HOME}/.tmux.conf"
+			chown "${SUDO_USER}:${TARGET_USER_GROUP}" "${TARGET_USER_HOME}/.tmux.conf"
+		fi
+	fi
+fi
+
 echo
 echo "Install complete."
 echo "Tested target: Raspberry Pi OS Bookworm 32-bit on Pi Zero 2 W / Beepy / ColorBerry."
 echo "A reboot is required before the keyboard overlay is active."
 echo "The side-button backlight listener is installed as colorberry-backlight.service."
 echo "Battery helper installed as ${BATTERY_BIN}."
+echo "tmux footer config installed for the invoking user when available."
 
 if [[ -e /dev/i2c-1 ]]; then
 	if i2cdetect -y 1 | grep -q '\<1f\>'; then

@@ -70,6 +70,7 @@ The script will:
 * install and enable `colorberry-backlight.service`
 * install `battery.py` as `/usr/local/bin/colorberry-battery`
 * install `tmux`
+* install a tmux battery footer config for the invoking user
 
 If you prefer to reboot manually, omit `--reboot`.
 
@@ -126,6 +127,13 @@ set -g status-right "#{ip} | #(/usr/local/bin/colorberry-battery --percent)%% | 
 
 This repo includes a sample tmux config at `colorberry.tmux.conf` that shows
 battery percentage in the tmux footer.
+
+The Bookworm setup script installs this automatically for the user who runs
+`sudo bash ./setup-colorberry-rpi-bookworm.sh`:
+
+* if `~/.tmux.conf` does not exist, it creates it from the sample
+* if `~/.tmux.conf` already exists, it installs `~/.tmux.colorberry.conf`
+  and appends `source-file ~/.tmux.colorberry.conf`
 
 To use it on the Pi:
 
