@@ -34,6 +34,7 @@ This repo now includes a setup script that installs:
 * the console keymap
 * the side-button backlight service
 * a battery helper as `colorberry-battery`
+* `tmux` for the optional battery footer workflow
 
 ### Prerequisites
 
@@ -68,6 +69,7 @@ The script will:
 * install `back.py` as `/usr/local/bin/colorberry-backlight`
 * install and enable `colorberry-backlight.service`
 * install `battery.py` as `/usr/local/bin/colorberry-battery`
+* install `tmux`
 
 If you prefer to reboot manually, omit `--reboot`.
 
@@ -119,6 +121,40 @@ For `tmux`, you can use:
 ```tmux
 set -g status-right "#{ip} | #(/usr/local/bin/colorberry-battery --percent)%% | %H:%M"
 ```
+
+### tmux Footer On Startup
+
+This repo includes a sample tmux config at `colorberry.tmux.conf` that shows
+battery percentage in the tmux footer.
+
+To use it on the Pi:
+
+```shell
+cp ~/jdi-drm-rpi_updated/colorberry.tmux.conf ~/.tmux.conf
+tmux source-file ~/.tmux.conf
+```
+
+The sample footer uses:
+
+```tmux
+#(/usr/local/bin/colorberry-battery --percent 2>/dev/null || printf -- '--')%% | %H:%M
+```
+
+If you also want tmux to start automatically on the local device console, add
+this to your shell startup file such as `~/.zshrc`:
+
+```shell
+if [ -z "$SSH_CONNECTION" ]; then
+        if [[ "$(tty)" =~ /dev/tty ]] && type fbterm > /dev/null 2>&1; then
+                fbterm
+        elif [ -z "$TMUX" ] && type tmux >/dev/null 2>&1; then
+                tmux new -As "$(basename "$(tty)")"
+        fi
+fi
+```
+
+That keeps SSH sessions unaffected, but starts tmux automatically on the local
+screen.
 
 The side button is handled by `colorberry-backlight.service`, not by cron.
 

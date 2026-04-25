@@ -101,7 +101,8 @@ DEBIAN_FRONTEND=noninteractive apt-get install -y \
 	i2c-tools \
 	kbd \
 	python3-rpi.gpio \
-	raspberrypi-kernel-headers
+	raspberrypi-kernel-headers \
+	tmux
 
 if [[ ! -e "/lib/modules/$(uname -r)/build" ]]; then
 	echo "Matching kernel headers are missing for $(uname -r)." >&2
