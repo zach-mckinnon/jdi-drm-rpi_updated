@@ -169,8 +169,20 @@ echo "Installing side-button backlight service..."
 install -D -m 0755 "${SCRIPT_DIR}/back.py" "$BACKLIGHT_BIN"
 install -D -m 0644 "$BACKLIGHT_SERVICE_SRC" "$BACKLIGHT_SERVICE"
 
+if [[ ! -x "$BACKLIGHT_BIN" ]]; then
+	echo "Backlight helper was not installed to ${BACKLIGHT_BIN}" >&2
+	exit 1
+fi
+
 systemctl daemon-reload
-systemctl enable --now colorberry-backlight.service || true
+systemctl enable colorberry-backlight.service
+systemctl restart colorberry-backlight.service
+
+if ! systemctl is-active --quiet colorberry-backlight.service; then
+	echo "colorberry-backlight.service did not start successfully." >&2
+	journalctl -u colorberry-backlight.service -b --no-pager || true
+	exit 1
+fi
 
 echo
 echo "Install complete."
